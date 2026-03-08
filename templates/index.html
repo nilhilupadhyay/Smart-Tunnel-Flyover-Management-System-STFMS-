@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>vehicle detection and assistace Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #3b82f6;
+            --accent-red: #ef4444;
+            --accent-green: #22c55e;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Navbar --- */
+        .navbar {
+            background-color: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #334155;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover { background: #475569; transform: translateY(-1px); }
+        .btn-primary { background: var(--accent-blue); }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: var(--accent-green); }
+        
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- Main Layout --- */
+        .container {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* --- Camera Grid --- */
+        .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .camera-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Header overlay on video */
+        .camera-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .cam-info h3 { font-size: 0.95rem; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .cam-id { font-size: 0.75rem; color: rgba(255,255,255,0.7); font-family: monospace; }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            backdrop-filter: blur(4px);
+        }
+
+        .rec-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-red);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background: #000;
+        }
+
+        .video-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* --- Alert Panel --- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            height: 400px;
+        }
+
+        .panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .alert-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        /* Custom Scrollbar */
+        .alert-feed::-webkit-scrollbar { width: 6px; }
+        .alert-feed::-webkit-scrollbar-track { background: #1e293b; }
+        .alert-feed::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+        .alert-item {
+            padding: 14px 20px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            transition: background 0.2s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-item:hover { background: #334155; }
+        
+        .alert-item:last-child { border-bottom: none; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .alert-icon {
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+        }
+
+        .alert-content { flex: 1; }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .alert-type {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent-red);
+        }
+
+        .alert-time { font-size: 0.75rem; color: var(--text-secondary); }
+        .alert-msg { font-size: 0.9rem; line-height: 1.4; color: #e2e8f0; }
+        .alert-cam { font-size: 0.8rem; color: var(--accent-blue); margin-top: 4px; display: block;}
+
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="brand">
+            <div class="brand-icon">👁️</div>
+            <span>Sentin-AI Hub</span>
+        </div>
+        <div class="controls">
+            <button id="audioBtn" class="btn btn-success" onclick="enableAudio()">
+                <span>🔈 Enable Audio</span>
+            </button>
+            <a href="/history" class="btn btn-primary">
+                <span>📂 History Log</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        
+        <!-- Camera Grid -->
+        <div class="camera-grid">
+            {% for cam in cameras %}
+            <div class="camera-card">
+                <div class="camera-header">
+                    <div class="cam-info">
+                        <h3>{{ cam.name }}</h3>
+                        <span class="cam-id">CAM-0{{ cam.id + 1 }} | IP: 192.168.1.10{{ cam.id }}</span>
+                    </div>
+                    <div class="live-badge">
+                        <div class="rec-dot"></div> REC
+                    </div>
+                </div>
+                <div class="video-wrapper">
+                    <img src="{{ url_for('video_feed', cam_id=cam.id) }}" class="video-feed" alt="Signal Lost">
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Dashboard Bottom Panel -->
+        <div class="dashboard-grid">
+            <!-- Alert Feed -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <div class="status-indicator"></div>
+                        Real-time Incident Feed
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">System Active</div>
+                </div>
+                <div id="alert-list" class="alert-feed">
+                    <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+                        System initializing... waiting for events.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats/System Info (Static placeholder for visual balance) -->
+            <div class="panel" style="height: auto;">
+                <div class="panel-header">
+                    <div class="panel-title">System Status</div>
+                </div>
+                <div style="padding: 20px; display: grid; gap: 15px;">
+                    <div style="background: #0f172a; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; color: #94a3b8;">Active Cameras</div>
+                        <div style="font-size: 1.5rem; font-weight: 600;">{{ cameras|length }} / 4</div>
+                    </div>
+                    <div style="background: #0f172a; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; color: #94a3b8;">Uptime</div>
+                        <div style="font-size: 1.5rem; font-weight: 600;">02:14:55</div>
+                    </div>
+                    <div style="background: #0f172a; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 0.8rem; color: #94a3b8;">Storage</div>
+                        <div style="font-size: 1.5rem; font-weight: 600;">45% Free</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const alertList = document.getElementById('alert-list');
+        const audioBtn = document.getElementById('audioBtn');
+        let lastAlertTime = ""; 
+        let audioEnabled = false;
+        let previousAlertsJSON = ""; 
+
+        // --- AUDIO HANDLING ---
+        function enableAudio() {
+            if ('speechSynthesis' in window) {
+                const u = new SpeechSynthesisUtterance("System online. Audio enabled.");
+                u.volume = 0.2;
+                window.speechSynthesis.speak(u);
+                
+                audioEnabled = true;
+                audioBtn.innerHTML = "<span>🔊 Audio Active</span>";
+                audioBtn.style.opacity = "0.7";
+                audioBtn.disabled = true;
+            } else {
+                alert("Browser does not support TTS.");
+            }
+        }
+
+        function playAudioAlert(text) {
+            if (audioEnabled && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); 
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.1; 
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- FETCH ALERTS ---
+        async function fetchAlerts() {
+            try {
+                const response = await fetch('/alerts');
+                if (response.ok) {
+                    const alerts = await response.json();
+                    const currentJSON = JSON.stringify(alerts);
+
+                    if (currentJSON !== previousAlertsJSON) {
+                        previousAlertsJSON = currentJSON;
+
+                        if (alerts.length === 0) {
+                            alertList.innerHTML = `
+                                <div style="padding: 2rem; text-align: center; color: #64748b; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                                    <span style="font-size: 2rem;">🛡️</span>
+                                    <div>No active threats detected.<br>All systems nominal.</div>
+                                </div>`;
+                        } else {
+                            // Render List
+                            alertList.innerHTML = alerts.map(a => `
+                                <div class="alert-item">
+                                    <div class="alert-icon">⚠️</div>
+                                    <div class="alert-content">
+                                        <div class="alert-header">
+                                            <span class="alert-type">VEHICLE STOPPED</span>
+                                            <span class="alert-time">${a.time}</span>
+                                        </div>
+                                        <div class="alert-msg">${a.message}</div>
+                                        <span class="alert-cam">📍 ${a.camera}</span>
+                                    </div>
+                                </div>
+                            `).join('');
+                            
+                            // Audio Trigger
+                            const topAlert = alerts[0];
+                            const currentKey = topAlert.time + topAlert.message; 
+                            
+                            if (currentKey !== lastAlertTime) {
+                                console.log("New Alert:", topAlert.tts);
+                                playAudioAlert(topAlert.tts);
+                                lastAlertTime = currentKey;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Connection unstable:", err);
+            } finally {
+                setTimeout(fetchAlerts, 1000);
+            }
+        }
+
+        fetchAlerts();
+    </script>
+</body>
+</html>

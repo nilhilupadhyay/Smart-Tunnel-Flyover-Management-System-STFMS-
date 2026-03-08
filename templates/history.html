@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident History</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f4f9; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #f8f9fa; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold; font-size: 0.8em; }
+        .bg-red { background: #dc3545; }
+        .bg-yellow { background: #ffc107; color: black; }
+        .btn { display: inline-block; margin-top: 20px; text-decoration: none; background: #007bff; color: white; padding: 10px 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="btn">&larr; Back to Dashboard</a>
+        <h1>Incident Database History</h1>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Camera</th>
+                    <th>Type</th>
+                    <th>Vehicle ID</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts_pagination.items %}
+                <tr>
+                    <td>{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ alert.camera_name }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-red' if 'STOP' in alert.event_type else 'bg-yellow' }}">
+                            {{ alert.event_type }}
+                        </span>
+                    </td>
+                    <td>{{ alert.vehicle_id }}</td>
+                    <td>{{ alert.details }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align:center; color:#777;">No records found in database.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Simple Pagination -->
+        <div style="margin-top: 20px;">
+            {% if alerts_pagination.has_prev %}
+                <a href="{{ url_for('history', page=alerts_pagination.prev_num) }}" class="btn">Previous</a>
+            {% endif %}
+            
+            <span style="margin: 0 10px;">Page {{ alerts_pagination.page }} of {{ alerts_pagination.pages }}</span>
+
+            {% if alerts_pagination.has_next %}
+                <a href="{{ url_for('history', page=alerts_pagination.next_num) }}" class="btn">Next</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
